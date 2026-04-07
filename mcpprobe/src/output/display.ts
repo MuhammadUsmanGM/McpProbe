@@ -7,11 +7,6 @@ async function getChalk() {
   return mod.default;
 }
 
-async function getBoxen() {
-  const mod = await import('boxen');
-  return mod.default;
-}
-
 const LINE = '─'.repeat(50);
 
 /**
@@ -24,18 +19,18 @@ export async function displayResults(result: ProbeResult, options: {
   copied?: boolean;
 }): Promise<void> {
   const chalk = await getChalk();
-  const boxen = await getBoxen();
-
   // Header
-  const header = boxen(
-    chalk.bold.cyan('MCPProbe') + chalk.gray(' v1.0.0'),
-    {
-      padding: { top: 0, bottom: 0, left: 1, right: 1 },
-      borderColor: 'cyan',
-      borderStyle: 'round',
-    }
-  );
-  console.log('\n' + header);
+  const logo = `███╗   ███╗ ██████╗██████╗ ██████╗ ██████╗  ██████╗ ██████╗ ███████╗
+████╗ ████║██╔════╝██╔══██╗██╔══██╗██╔══██╗██╔═══██╗██╔══██╗██╔════╝
+██╔████╔██║██║     ██████╔╝██████╔╝██████╔╝██║   ██║██████╔╝█████╗  
+██║╚██╔╝██║██║     ██╔═══╝ ██╔═══╝ ██╔══██╗██║   ██║██╔══██╗██╔══╝  
+██║ ╚═╝ ██║╚██████╗██║     ██║     ██║  ██║╚██████╔╝██████╔╝███████╗
+╚═╝     ╚═╝ ╚═════╝╚═╝     ╚═╝     ╚═╝  ╚═╝ ╚═════╝ ╚═════╝ ╚══════╝`;
+
+  const subtitle = "  probe any mcp server · tools · compat · score · configs";
+
+  console.log('\n' + chalk.hex('#8B5CF6').bold(logo));
+  console.log(chalk.hex('#10B981')(subtitle) + '\n');
 
   // Probe summary
   console.log(`\n${chalk.gray('Probing')} ${chalk.white(result.repo.url)}${chalk.gray('...')}\n`);
