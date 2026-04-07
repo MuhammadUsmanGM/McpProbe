@@ -1,5 +1,9 @@
 # MCPProbe
 
+[![npm version](https://img.shields.io/npm/v/mcpprobe.svg?style=flat-square)](https://www.npmjs.org/package/mcpprobe)
+[![npm downloads](https://img.shields.io/npm/dm/mcpprobe.svg?style=flat-square)](https://www.npmjs.org/package/mcpprobe)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+
 > Probe any MCP server in seconds — tools, compatibility, score, configs.
 
 **Zero-install CLI** that analyzes any MCP server and tells you everything about it: what tools it exposes, which AI clients support it, a health score, and ready-to-paste config snippets.
