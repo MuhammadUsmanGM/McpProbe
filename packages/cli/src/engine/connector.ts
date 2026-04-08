@@ -6,7 +6,9 @@ import * as fs from 'fs';
 import { RepoMetadata, ServerTransport, ConnectionResult } from '../types';
 import { parseTools } from './parser';
 
-const TIMEOUT_MS = 15000;
+const TIMEOUT_MS = 10000;
+const HTTP_PER_URL_TIMEOUT_MS = 3000;
+const MAX_HTTP_URLS_TO_TRY = 5;
 
 export interface ConnectorOptions {
   skipConfirm?: boolean;
@@ -34,6 +36,19 @@ function confirmExecution(command: string, args: string[]): Promise<boolean> {
 }
 
 /**
+ * Fetch with an AbortController timeout.
+ */
+async function fetchWithTimeout(url: string, options: any, timeoutMs: number): Promise<any> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
  * Send a JSON-RPC message over stdio and wait for a response.
  */
 function sendJsonRpc(
@@ -55,7 +70,6 @@ function sendJsonRpc(
     const onData = (data: Buffer) => {
       buffer += data.toString();
 
-      // Try to parse complete JSON-RPC responses from buffer
       const lines = buffer.split('\n');
       for (const line of lines) {
         const trimmed = line.trim();
@@ -98,7 +112,6 @@ async function connectStdio(repo: RepoMetadata, options: ConnectorOptions = {}):
   try {
     const pkgName = repo.packageJson?.name || repo.name;
 
-    // Determine how to spawn the server
     let command: string;
     let args: string[];
 
@@ -106,7 +119,6 @@ async function connectStdio(repo: RepoMetadata, options: ConnectorOptions = {}):
       // Local: install deps if needed, then run
       const nodeModules = path.join(repo.localPath, 'node_modules');
       if (!fs.existsSync(nodeModules)) {
-        // Run npm install first
         await new Promise<void>((resolve, reject) => {
           const install = spawn('npm', ['install'], {
             cwd: repo.localPath,
@@ -121,7 +133,6 @@ async function connectStdio(repo: RepoMetadata, options: ConnectorOptions = {}):
         });
       }
 
-      // Find the entry point
       const mainEntry = repo.packageJson?.main || 'index.js';
       const entryPath = path.join(repo.localPath, mainEntry);
 
@@ -219,24 +230,21 @@ async function connectHttp(repo: RepoMetadata): Promise<ConnectionResult> {
   const startTime = Date.now();
 
   try {
-    // Try common MCP HTTP endpoints
     const baseUrls: string[] = [];
 
     if (repo.isLocal) {
       baseUrls.push('http://localhost:3000', 'http://localhost:8000', 'http://localhost:8080');
     } else {
-      // Try to find URL hints in README
-      const urlMatch = repo.readmeContent.match(/https?:\/\/[^\s)]+/g);
-      if (urlMatch) {
-        baseUrls.push(...urlMatch.filter(u => !u.includes('github.com')));
-      }
-      baseUrls.push('http://localhost:3000');
+      // Only try localhost for remote repos — README URL scraping is unreliable and slow
+      baseUrls.push('http://localhost:3000', 'http://localhost:8000', 'http://localhost:8080');
     }
 
-    for (const baseUrl of baseUrls) {
+    // Limit URLs to try
+    const urlsToTry = baseUrls.slice(0, MAX_HTTP_URLS_TO_TRY);
+
+    for (const baseUrl of urlsToTry) {
       try {
-        // Try MCP endpoint
-        const res = await fetch(`${baseUrl}/mcp`, {
+        const res = await fetchWithTimeout(`${baseUrl}/mcp`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -245,8 +253,7 @@ async function connectHttp(repo: RepoMetadata): Promise<ConnectionResult> {
             method: 'tools/list',
             params: {},
           }),
-          timeout: TIMEOUT_MS,
-        });
+        }, HTTP_PER_URL_TIMEOUT_MS);
 
         if (res.ok) {
           const data = (await res.json()) as any;
@@ -265,7 +272,7 @@ async function connectHttp(repo: RepoMetadata): Promise<ConnectionResult> {
       tools: [],
       latencyMs: Date.now() - startTime,
       connected: false,
-      error: 'Could not connect to HTTP MCP server. Ensure it is running.',
+      error: 'Could not connect to HTTP MCP server. Ensure it is running locally.',
     };
   } catch (error) {
     return {
