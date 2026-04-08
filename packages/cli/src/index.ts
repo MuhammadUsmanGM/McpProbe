@@ -30,6 +30,7 @@ async function main() {
     .option('--score', 'Only show score')
     .option('--config <client>', `Show config for a specific client (${CLIENT_DEFINITIONS.map((c) => c.key).join(', ')})`)
     .option('--copy', 'Copy config to clipboard (use with --config)')
+    .option('-y, --yes', 'Skip confirmation prompt before executing npx')
     .addHelpText('beforeAll', branding)
     .action(async (target: string | undefined, opts: any) => {
       if (!target) {
@@ -53,6 +54,7 @@ async function main() {
         score: opts.score,
         config: opts.config,
         copy: opts.copy,
+        yes: opts.yes,
       });
     });
 

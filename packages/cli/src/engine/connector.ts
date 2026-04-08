@@ -1,4 +1,5 @@
 import { spawn, ChildProcess } from 'child_process';
+import * as readline from 'readline';
 import fetch from 'node-fetch';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -7,6 +8,31 @@ import { parseTools } from './parser';
 
 const TIMEOUT_MS = 15000;
 
+export interface ConnectorOptions {
+  skipConfirm?: boolean;
+}
+
+/**
+ * Prompt the user for confirmation before executing a command.
+ */
+function confirmExecution(command: string, args: string[]): Promise<boolean> {
+  return new Promise((resolve) => {
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stderr,
+    });
+
+    const fullCmd = `${command} ${args.join(' ')}`;
+    console.error(`\n\x1b[33m⚠  This will execute: ${fullCmd}\x1b[0m`);
+    console.error(`\x1b[90m   This downloads and runs code from npm.\x1b[0m`);
+
+    rl.question('   Proceed? (y/N) ', (answer) => {
+      rl.close();
+      resolve(answer.trim().toLowerCase() === 'y');
+    });
+  });
+}
+
 /**
  * Send a JSON-RPC message over stdio and wait for a response.
  */
@@ -14,11 +40,14 @@ function sendJsonRpc(
   proc: ChildProcess,
   method: string,
   params: Record<string, any> = {},
-  id: number = 1
+  id: number = 1,
+  stderrChunks: string[] = []
 ): Promise<any> {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
-      reject(new Error(`JSON-RPC timeout waiting for response to "${method}"`));
+      const stderrOutput = stderrChunks.join('').trim();
+      const detail = stderrOutput ? `\nServer stderr: ${stderrOutput}` : '';
+      reject(new Error(`JSON-RPC timeout waiting for response to "${method}" (${TIMEOUT_MS}ms)${detail}`));
     }, TIMEOUT_MS);
 
     let buffer = '';
@@ -62,7 +91,7 @@ function sendJsonRpc(
 /**
  * Connect to a stdio MCP server.
  */
-async function connectStdio(repo: RepoMetadata): Promise<ConnectionResult> {
+async function connectStdio(repo: RepoMetadata, options: ConnectorOptions = {}): Promise<ConnectionResult> {
   const startTime = Date.now();
   let proc: ChildProcess | null = null;
 
@@ -88,7 +117,7 @@ async function connectStdio(repo: RepoMetadata): Promise<ConnectionResult> {
             if (code === 0) resolve();
             else reject(new Error(`npm install failed with code ${code}`));
           });
-          install.on('error', reject);
+          install.on('error', (err) => reject(new Error(`Failed to run npm install: ${err.message}`)));
         });
       }
 
@@ -99,9 +128,21 @@ async function connectStdio(repo: RepoMetadata): Promise<ConnectionResult> {
       command = 'node';
       args = [entryPath];
     } else {
-      // Remote: use npx
+      // Remote: use npx — confirm with user first
       command = 'npx';
       args = ['-y', pkgName];
+
+      if (!options.skipConfirm) {
+        const confirmed = await confirmExecution(command, args);
+        if (!confirmed) {
+          return {
+            tools: [],
+            latencyMs: Date.now() - startTime,
+            connected: false,
+            error: 'User declined to execute npx command. Use --yes to skip this prompt.',
+          };
+        }
+      }
     }
 
     proc = spawn(command, args, {
@@ -109,15 +150,27 @@ async function connectStdio(repo: RepoMetadata): Promise<ConnectionResult> {
       stdio: ['pipe', 'pipe', 'pipe'],
     });
 
-    // Handle process errors
-    proc.on('error', () => {});
+    // Capture stderr for diagnostics
+    const stderrChunks: string[] = [];
+    proc.stderr?.on('data', (data: Buffer) => {
+      stderrChunks.push(data.toString());
+    });
 
-    // Initialize
-    const initResponse = await sendJsonRpc(proc, 'initialize', {
+    // Handle process spawn errors
+    const spawnError = new Promise<never>((_, reject) => {
+      proc!.on('error', (err) => {
+        reject(new Error(`Failed to spawn "${command}": ${err.message}`));
+      });
+    });
+
+    // Race between spawn error and normal flow
+    const initPromise = sendJsonRpc(proc, 'initialize', {
       protocolVersion: '2024-11-05',
       capabilities: {},
       clientInfo: { name: 'mcpprobe', version: '1.0.0' },
-    }, 1);
+    }, 1, stderrChunks);
+
+    await Promise.race([initPromise, spawnError]);
 
     // Send initialized notification
     proc.stdin?.write(JSON.stringify({
@@ -126,7 +179,10 @@ async function connectStdio(repo: RepoMetadata): Promise<ConnectionResult> {
     }) + '\n');
 
     // List tools
-    const toolsResponse = await sendJsonRpc(proc, 'tools/list', {}, 2);
+    const toolsResponse = await Promise.race([
+      sendJsonRpc(proc, 'tools/list', {}, 2, stderrChunks),
+      spawnError,
+    ]);
 
     const latencyMs = Date.now() - startTime;
     const rawTools = toolsResponse?.result?.tools || [];
@@ -189,7 +245,6 @@ async function connectHttp(repo: RepoMetadata): Promise<ConnectionResult> {
             method: 'tools/list',
             params: {},
           }),
-          // @ts-ignore - timeout option
           timeout: TIMEOUT_MS,
         });
 
@@ -227,10 +282,11 @@ async function connectHttp(repo: RepoMetadata): Promise<ConnectionResult> {
  */
 export async function connectToServer(
   repo: RepoMetadata,
-  transport: ServerTransport
+  transport: ServerTransport,
+  options: ConnectorOptions = {}
 ): Promise<ConnectionResult> {
   if (transport === 'stdio') {
-    return connectStdio(repo);
+    return connectStdio(repo, options);
   }
 
   if (transport === 'http') {
@@ -238,7 +294,7 @@ export async function connectToServer(
   }
 
   // Unknown transport — try stdio first, then HTTP
-  const stdioResult = await connectStdio(repo);
+  const stdioResult = await connectStdio(repo, options);
   if (stdioResult.connected) {
     return stdioResult;
   }

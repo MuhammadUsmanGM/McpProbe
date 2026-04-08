@@ -32,7 +32,7 @@ export async function runProbe(target: string, options: CLIOptions): Promise<voi
     // Step 3: Connect and discover tools
     const connectSpinner = await createSpinner('Connecting to server...');
     connectSpinner.start();
-    const connection = await connectToServer(repo, transport);
+    const connection = await connectToServer(repo, transport, { skipConfirm: options.yes });
 
     if (connection.connected) {
       connectSpinner.succeed(`Connected (${connection.latencyMs}ms) — ${connection.tools.length} tools found`);

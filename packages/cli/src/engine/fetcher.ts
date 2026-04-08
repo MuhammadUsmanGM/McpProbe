@@ -13,6 +13,21 @@ interface GitHubRepoResponse {
 }
 
 /**
+ * Get GitHub auth headers if a token is available.
+ */
+function getGitHubHeaders(): Record<string, string> {
+  const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+  const headers: Record<string, string> = {
+    'Accept': 'application/vnd.github.v3+json',
+    'User-Agent': 'mcpprobe-cli',
+  };
+  if (token) {
+    headers['Authorization'] = `token ${token}`;
+  }
+  return headers;
+}
+
+/**
  * Parse a GitHub URL into owner/repo.
  */
 export function parseGitHubUrl(url: string): { owner: string; repo: string } | null {
@@ -21,7 +36,7 @@ export function parseGitHubUrl(url: string): { owner: string; repo: string } | n
   // https://github.com/owner/repo.git
   // github.com/owner/repo
   const patterns = [
-    /(?:https?:\/\/)?github\.com\/([^\/]+)\/([^\/\s.]+?)(?:\.git)?(?:\/.*)?$/i,
+    /(?:https?:\/\/)?github\.com\/([^/]+)\/([^/\s.]+?)(?:\.git)?(?:\/.*)?$/i,
   ];
 
   for (const pattern of patterns) {
@@ -45,15 +60,27 @@ export function isLocalPath(input: string): boolean {
  */
 async function fetchGitHubRepo(owner: string, repo: string): Promise<RepoMetadata> {
   const apiUrl = `https://api.github.com/repos/${owner}/${repo}`;
+  const headers = getGitHubHeaders();
 
-  const repoRes = await fetch(apiUrl, {
-    headers: {
-      'Accept': 'application/vnd.github.v3+json',
-      'User-Agent': 'mcpprobe-cli',
-    },
-  });
+  const repoRes = await fetch(apiUrl, { headers });
 
   if (!repoRes.ok) {
+    const hasToken = !!(process.env.GITHUB_TOKEN || process.env.GH_TOKEN);
+
+    if (repoRes.status === 403) {
+      const hint = hasToken
+        ? 'Your GITHUB_TOKEN may be invalid or lack permissions.'
+        : 'You may have hit the GitHub API rate limit (60 req/hr). Set GITHUB_TOKEN or GH_TOKEN to increase it.';
+      throw new Error(`GitHub API rate limited (403). ${hint}`);
+    }
+
+    if (repoRes.status === 404) {
+      const hint = hasToken
+        ? 'The repository may not exist or your token lacks access.'
+        : 'The repository may be private. Set GITHUB_TOKEN or GH_TOKEN to access private repos.';
+      throw new Error(`Repository not found (404): ${owner}/${repo}. ${hint}`);
+    }
+
     throw new Error(`GitHub API returned ${repoRes.status}: ${repoRes.statusText}`);
   }
 
@@ -63,7 +90,7 @@ async function fetchGitHubRepo(owner: string, repo: string): Promise<RepoMetadat
   let packageJson: PackageJsonData | null = null;
   try {
     const pkgUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${repoData.default_branch}/package.json`;
-    const pkgRes = await fetch(pkgUrl);
+    const pkgRes = await fetch(pkgUrl, { headers });
     if (pkgRes.ok) {
       packageJson = (await pkgRes.json()) as PackageJsonData;
     }
@@ -75,7 +102,7 @@ async function fetchGitHubRepo(owner: string, repo: string): Promise<RepoMetadat
   let readmeContent = '';
   try {
     const readmeUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${repoData.default_branch}/README.md`;
-    const readmeRes = await fetch(readmeUrl);
+    const readmeRes = await fetch(readmeUrl, { headers });
     if (readmeRes.ok) {
       readmeContent = await readmeRes.text();
     }

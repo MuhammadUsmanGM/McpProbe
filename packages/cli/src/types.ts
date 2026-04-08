@@ -86,4 +86,5 @@ export interface CLIOptions {
   score?: boolean;
   config?: string;
   copy?: boolean;
+  yes?: boolean;
 }
