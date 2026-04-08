@@ -1,30 +1,24 @@
+import chalk from 'chalk';
 import { ProbeResult, Tool, CompatEntry, ScoreBreakdown } from '../types';
 import { getConfigFilePath } from '../generator/config';
 import { CLIENT_DEFINITIONS } from '../clients';
-
-// Dynamic imports for ESM modules
-async function getChalk() {
-  const mod = await import('chalk');
-  return mod.default;
-}
 
 const LINE = '─'.repeat(50);
 
 /**
  * Display full probe results in the terminal.
  */
-export async function displayResults(result: ProbeResult, options: {
+export function displayResults(result: ProbeResult, options: {
   showTools?: boolean;
   showScore?: boolean;
   configClient?: string;
   copied?: boolean;
-}): Promise<void> {
-  const chalk = await getChalk();
+}): void {
   // Header
   const logo = `███╗   ███╗ ██████╗██████╗ ██████╗ ██████╗  ██████╗ ██████╗ ███████╗
 ████╗ ████║██╔════╝██╔══██╗██╔══██╗██╔══██╗██╔═══██╗██╔══██╗██╔════╝
-██╔████╔██║██║     ██████╔╝██████╔╝██████╔╝██║   ██║██████╔╝█████╗  
-██║╚██╔╝██║██║     ██╔═══╝ ██╔═══╝ ██╔══██╗██║   ██║██╔══██╗██╔══╝  
+██╔████╔██║██║     ██████╔╝██████╔╝██████╔╝██║   ██║██████╔╝█████╗
+██║╚██╔╝██║██║     ██╔═══╝ ██╔═══╝ ██╔══██╗██║   ██║██╔══██╗██╔══╝
 ██║ ╚═╝ ██║╚██████╗██║     ██║     ██║  ██║╚██████╔╝██████╔╝███████╗
 ╚═╝     ╚═╝ ╚═════╝╚═╝     ╚═╝     ╚═╝  ╚═╝ ╚═════╝ ╚═════╝ ╚══════╝`;
 
@@ -49,24 +43,24 @@ export async function displayResults(result: ProbeResult, options: {
 
   // If --tools only
   if (options.showTools) {
-    displayTools(chalk, result.tools);
+    displayTools(result.tools);
     return;
   }
 
   // If --score only
   if (options.showScore) {
-    displayScore(chalk, result.score);
+    displayScore(result.score);
     return;
   }
 
   // Full output
-  displayTools(chalk, result.tools);
-  displayCompatibility(chalk, result.compatibility);
-  displayScore(chalk, result.score);
+  displayTools(result.tools);
+  displayCompatibility(result.compatibility);
+  displayScore(result.score);
 
   // Config section
   const configClient = options.configClient || 'claude';
-  displayConfig(chalk, result.configs, configClient, options.copied || false);
+  displayConfig(result.configs, configClient, options.copied || false);
 
   // Footer hints
   console.log('');
@@ -75,7 +69,7 @@ export async function displayResults(result: ProbeResult, options: {
   console.log('');
 }
 
-function displayTools(chalk: any, tools: Tool[]): void {
+function displayTools(tools: Tool[]): void {
   console.log(`\n${chalk.gray(LINE)}`);
   console.log(chalk.bold.white(`  TOOLS (${tools.length})`));
   console.log(chalk.gray(LINE));
@@ -109,7 +103,7 @@ function displayTools(chalk: any, tools: Tool[]): void {
   }
 }
 
-function displayCompatibility(chalk: any, compat: CompatEntry[]): void {
+function displayCompatibility(compat: CompatEntry[]): void {
   console.log(`\n${chalk.gray(LINE)}`);
   console.log(chalk.bold.white('  COMPATIBILITY'));
   console.log(chalk.gray(LINE));
@@ -132,7 +126,7 @@ function displayCompatibility(chalk: any, compat: CompatEntry[]): void {
   }
 }
 
-function displayScore(chalk: any, score: { total: number; maxTotal: number; grade: string; breakdown: ScoreBreakdown[] }): void {
+function displayScore(score: { total: number; maxTotal: number; grade: string; breakdown: ScoreBreakdown[] }): void {
   console.log(`\n${chalk.gray(LINE)}`);
 
   const gradeColor = score.grade === 'A' ? chalk.green : score.grade === 'B' ? chalk.yellow : score.grade === 'C' ? chalk.hex('#FFA500') : chalk.red;
@@ -149,7 +143,7 @@ function displayScore(chalk: any, score: { total: number; maxTotal: number; grad
   }
 }
 
-function displayConfig(chalk: any, configs: Record<string, string>, client: string, copied: boolean): void {
+function displayConfig(configs: Record<string, string>, client: string, copied: boolean): void {
   const clientKey = client.toLowerCase();
   const clientNames: Record<string, string> = Object.fromEntries(
     CLIENT_DEFINITIONS.map((c) => [c.key, c.name])

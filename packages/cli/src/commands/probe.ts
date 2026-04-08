@@ -1,4 +1,5 @@
-import { ProbeResult, CLIOptions } from '../types';
+import chalk from 'chalk';
+import { ProbeResult, CLIOptions, ConnectionResult } from '../types';
 import { fetchRepoMetadata } from '../engine/fetcher';
 import { detectTransport } from '../engine/detector';
 import { connectToServer } from '../engine/connector';
@@ -15,7 +16,7 @@ import { createSpinner } from '../utils/spinner';
  * Main probe command — orchestrates the full probe pipeline.
  */
 export async function runProbe(target: string, options: CLIOptions): Promise<void> {
-  const spinner = await createSpinner('Fetching repository metadata...');
+  const spinner = createSpinner('Fetching repository metadata...');
 
   try {
     // Step 1: Fetch repo metadata
@@ -24,21 +25,21 @@ export async function runProbe(target: string, options: CLIOptions): Promise<voi
     spinner.succeed(`Repo fetched: ${repo.name}${repo.stars > 0 ? ` (★ ${repo.stars})` : ''}`);
 
     // Step 2: Detect transport
-    const transportSpinner = await createSpinner('Detecting server type...');
+    const transportSpinner = createSpinner('Detecting server type...');
     transportSpinner.start();
     const transport = detectTransport(repo);
     transportSpinner.succeed(`Server type: ${transport}`);
 
     // Step 3: Connect and discover tools (skip in dry-run mode)
-    let connection: import('../types').ConnectionResult;
+    let connection: ConnectionResult;
 
     if (options.dryRun) {
-      const dryRunSpinner = await createSpinner('Dry run — skipping connection...');
+      const dryRunSpinner = createSpinner('Dry run — skipping connection...');
       dryRunSpinner.start();
       connection = { tools: [], latencyMs: 0, connected: false, error: 'Dry run — connection skipped' };
       dryRunSpinner.succeed('Dry run — static analysis only');
     } else {
-      const connectSpinner = await createSpinner('Connecting to server...');
+      const connectSpinner = createSpinner('Connecting to server...');
       connectSpinner.start();
       connection = await connectToServer(repo, transport, { skipConfirm: options.yes });
 
@@ -75,14 +76,12 @@ export async function runProbe(target: string, options: CLIOptions): Promise<voi
     // Output based on flags
     if (options.json) {
       const filePath = saveJsonReport(result);
-      const chalk = (await import('chalk')).default;
       console.log(`\n${chalk.green('✔')} Report saved to ${chalk.white(filePath)}\n`);
       return;
     }
 
     if (options.md) {
       const filePath = saveMarkdownReport(result);
-      const chalk = (await import('chalk')).default;
       console.log(`\n${chalk.green('✔')} Report saved to ${chalk.white(filePath)}\n`);
       return;
     }
@@ -97,7 +96,7 @@ export async function runProbe(target: string, options: CLIOptions): Promise<voi
     }
 
     // Display terminal output
-    await displayResults(result, {
+    displayResults(result, {
       showTools: options.tools,
       showScore: options.score,
       configClient: options.config,

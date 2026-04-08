@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
+import chalk from 'chalk';
 import { Command } from 'commander';
 import { runProbe } from './commands/probe';
 import { CLIENT_DEFINITIONS } from './clients';
 
 async function main() {
-  const chalk = (await import('chalk')).default;
   const program = new Command();
 
   const logo = `███╗   ███╗ ██████╗██████╗ ██████╗ ██████╗  ██████╗ ██████╗ ███████╗

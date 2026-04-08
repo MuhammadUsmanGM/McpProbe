@@ -1,12 +1,4 @@
-// ora is ESM-only, so we use dynamic import
-let oraModule: any = null;
-
-async function getOra() {
-  if (!oraModule) {
-    oraModule = await import('ora');
-  }
-  return oraModule.default;
-}
+import ora from 'ora';
 
 export interface SpinnerInstance {
   start: (text?: string) => void;
@@ -16,8 +8,7 @@ export interface SpinnerInstance {
   stop: () => void;
 }
 
-export async function createSpinner(text: string): Promise<SpinnerInstance> {
-  const ora = await getOra();
+export function createSpinner(text: string): SpinnerInstance {
   const spinner = ora({ text, spinner: 'dots' });
 
   return {

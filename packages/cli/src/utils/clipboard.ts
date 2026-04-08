@@ -1,8 +1,8 @@
-// clipboardy is ESM-only, so we use dynamic import
+import clipboardy from 'clipboardy';
+
 export async function copyToClipboard(text: string): Promise<boolean> {
   try {
-    const clipboardy = await import('clipboardy');
-    await clipboardy.default.write(text);
+    clipboardy.writeSync(text);
     return true;
   } catch {
     return false;
