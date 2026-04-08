@@ -27,7 +27,7 @@ async function main() {
     .option('--md', 'Save report as markdown file')
     .option('--tools', 'Only show tools')
     .option('--score', 'Only show score')
-    .option('--config <client>', 'Show config for a specific client (claude, cursor, windsurf, cline)')
+    .option('--config <client>', 'Show config for a specific client (claude, claude-code, cursor, windsurf, cline, vscode, codex, gemini, goose, continue, zed, amp, jetbrains)')
     .option('--copy', 'Copy config to clipboard (use with --config)')
     .addHelpText('beforeAll', branding)
     .action(async (target: string | undefined, opts: any) => {
@@ -37,7 +37,7 @@ async function main() {
         return;
       }
 
-      const validClients = ['claude', 'cursor', 'windsurf', 'cline'];
+      const validClients = ['claude', 'claude-code', 'cursor', 'windsurf', 'cline', 'vscode', 'codex', 'gemini', 'goose', 'continue', 'zed', 'amp', 'jetbrains'];
       if (opts.config && !validClients.includes(opts.config.toLowerCase())) {
         console.error(
           `\nError: Invalid client "${opts.config}". Use one of: ${validClients.join(', ')}\n`

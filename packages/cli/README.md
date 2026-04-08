@@ -28,7 +28,7 @@ npx mcpprobe https://github.com/modelcontextprotocol/sqlite
 
 - 🔍 **Auto-Discovery:** Automatically detects stdio vs HTTP/SSE transports.
 - 🛠️ **Tool Extraction:** Parses every tool, description, and input schema.
-- 🎯 **Client Compatibility:** Verifies readiness for **Claude Desktop, Cursor, Windsurf, and Cline**.
+- 🎯 **Client Compatibility:** Verifies readiness for **13 major AI clients** — Claude Desktop, Claude Code, Cursor, Windsurf, Cline, VS Code (Copilot), Codex, Gemini CLI, Goose, Continue, Zed, Amp, and JetBrains AI.
 - 🏆 **Health Score:** Grades the server (0-100) based on responsiveness, typing, and safety.
 - ⚙️ **Config Generator:** Spits out exact JSON configurations to paste into your AI client.
 - 🧾 **Exportable Reports:** Save full analyses via `--md` or `--json`.
@@ -43,7 +43,9 @@ Options:
   --md               Save report as Markdown
   --tools            Display only the tools
   --score            Display only the health score
-  --config <client>  Show config for a specific client (claude, cursor, windsurf, cline)
+  --config <client>  Show config for a specific client
+                     (claude, claude-code, cursor, windsurf, cline, vscode,
+                      codex, gemini, goose, continue, zed, amp, jetbrains)
   --copy             Copy the generated config to your clipboard
 ```
 

@@ -19,7 +19,7 @@ export default function Home() {
     },
     {
       title: "Client Compatibility",
-      description: "Verify readiness across Claude Desktop, Cursor, Windsurf, and Cline with detailed reports.",
+      description: "Verify readiness across 13 major AI clients including Claude, Cursor, VS Code, Codex, Gemini CLI, Goose, and more.",
       icon: <ShieldCheck className="size-6 text-brand-secondary" />,
     },
     {

@@ -4,9 +4,18 @@ import { ShieldCheck, CheckCircle2, AlertTriangle, XCircle } from "lucide-react"
 export default function CompatibilityDocsPage() {
   const clients = [
     { name: "Claude Desktop", transport: "stdio", status: "Native", desc: "First-party support for all MCP stdio servers." },
+    { name: "Claude Code", transport: "stdio, http", status: "Native", desc: "Anthropic's CLI agent with full MCP support via .mcp.json." },
     { name: "Cursor", transport: "stdio, http", status: "Optimized", desc: "Supports local HTTP servers and stdio pipelines." },
     { name: "Windsurf", transport: "stdio, http", status: "Full", desc: "Modern IDE with seamless integration for both transports." },
-    { name: "Cline", transport: "stdio", status: "Native", desc: "Requires stdio transport for local command execution." }
+    { name: "Cline", transport: "stdio", status: "Native", desc: "Requires stdio transport for local command execution." },
+    { name: "VS Code", transport: "stdio, http", status: "Full", desc: "GitHub Copilot agent mode with MCP via .vscode/mcp.json." },
+    { name: "Codex (OpenAI)", transport: "stdio", status: "Native", desc: "OpenAI's CLI agent with TOML-based MCP config." },
+    { name: "Gemini CLI", transport: "stdio", status: "Native", desc: "Google's CLI with MCP via ~/.gemini/settings.json." },
+    { name: "Goose", transport: "stdio", status: "Native", desc: "Block's on-machine AI agent with YAML-based extensions." },
+    { name: "Continue", transport: "stdio, http", status: "Full", desc: "Open-source IDE extension for VS Code and JetBrains." },
+    { name: "Zed", transport: "stdio, http", status: "Experimental", desc: "High-performance editor with context_servers in settings." },
+    { name: "Amp", transport: "stdio", status: "Native", desc: "Sourcegraph's coding agent with MCP skills support." },
+    { name: "JetBrains AI", transport: "stdio, http", status: "Full", desc: "AI Assistant in IntelliJ, WebStorm, PyCharm, and more." },
   ];
 
   return (
@@ -23,7 +32,7 @@ export default function CompatibilityDocsPage() {
         </p>
 
         <section className="space-y-12">
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {clients.map((c, i) => (
                 <div key={i} className="p-8 rounded-3xl bg-white/2 border border-white/10 hover:border-brand-primary/20 transition-all flex flex-col gap-6 group">
                    <div className="flex justify-between items-start">

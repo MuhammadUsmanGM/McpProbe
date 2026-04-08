@@ -152,9 +152,18 @@ function displayConfig(chalk: any, configs: Record<string, string>, client: stri
   const clientKey = client.toLowerCase();
   const clientNames: Record<string, string> = {
     claude: 'Claude Desktop',
+    'claude-code': 'Claude Code',
     cursor: 'Cursor',
     windsurf: 'Windsurf',
     cline: 'Cline',
+    vscode: 'VS Code',
+    codex: 'Codex',
+    gemini: 'Gemini CLI',
+    goose: 'Goose',
+    continue: 'Continue',
+    zed: 'Zed',
+    amp: 'Amp',
+    jetbrains: 'JetBrains AI',
   };
 
   const configStr = configs[clientKey];

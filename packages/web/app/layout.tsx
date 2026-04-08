@@ -4,7 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "MCPProbe — Probe any MCP server in seconds",
   description: "Dissect any Model Context Protocol (MCP) server. Analyze tools, check compatibility with AI clients, and get health scores instantly.",
-  keywords: ["MCP", "Model Context Protocol", "AI", "Claude", "Cursor", "Windsurf", "Cline", "Developer Tools"],
+  keywords: ["MCP", "Model Context Protocol", "AI", "Claude", "Claude Code", "Cursor", "Windsurf", "Cline", "VS Code", "Copilot", "Codex", "Gemini CLI", "Goose", "Continue", "Zed", "Amp", "JetBrains", "Developer Tools"],
   authors: [{ name: "Muhammad Usman" }],
   openGraph: {
     title: "MCPProbe — Probe any MCP server in seconds",
