@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { ProbeResult } from '../types';
+import { CLIENT_DEFINITIONS } from '../clients';
 
 /**
  * Save probe results as markdown file.
@@ -76,21 +77,9 @@ export function saveMarkdownReport(result: ProbeResult, outputPath?: string): st
   lines.push('## Config Snippets');
   lines.push('');
 
-  const clientNames: Record<string, string> = {
-    claude: 'Claude Desktop',
-    'claude-code': 'Claude Code',
-    cursor: 'Cursor',
-    windsurf: 'Windsurf',
-    cline: 'Cline',
-    vscode: 'VS Code',
-    codex: 'Codex',
-    gemini: 'Gemini CLI',
-    goose: 'Goose',
-    continue: 'Continue',
-    zed: 'Zed',
-    amp: 'Amp',
-    jetbrains: 'JetBrains AI',
-  };
+  const clientNames: Record<string, string> = Object.fromEntries(
+    CLIENT_DEFINITIONS.map((c) => [c.key, c.name])
+  );
 
   for (const [key, config] of Object.entries(result.configs)) {
     lines.push(`### ${clientNames[key] || key}`);

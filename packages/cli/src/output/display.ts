@@ -1,5 +1,6 @@
 import { ProbeResult, Tool, CompatEntry, ScoreBreakdown } from '../types';
 import { getConfigFilePath } from '../generator/config';
+import { CLIENT_DEFINITIONS } from '../clients';
 
 // Dynamic imports for ESM modules
 async function getChalk() {
@@ -150,21 +151,9 @@ function displayScore(chalk: any, score: { total: number; maxTotal: number; grad
 
 function displayConfig(chalk: any, configs: Record<string, string>, client: string, copied: boolean): void {
   const clientKey = client.toLowerCase();
-  const clientNames: Record<string, string> = {
-    claude: 'Claude Desktop',
-    'claude-code': 'Claude Code',
-    cursor: 'Cursor',
-    windsurf: 'Windsurf',
-    cline: 'Cline',
-    vscode: 'VS Code',
-    codex: 'Codex',
-    gemini: 'Gemini CLI',
-    goose: 'Goose',
-    continue: 'Continue',
-    zed: 'Zed',
-    amp: 'Amp',
-    jetbrains: 'JetBrains AI',
-  };
+  const clientNames: Record<string, string> = Object.fromEntries(
+    CLIENT_DEFINITIONS.map((c) => [c.key, c.name])
+  );
 
   const configStr = configs[clientKey];
   if (!configStr) return;

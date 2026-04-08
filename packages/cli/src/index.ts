@@ -2,6 +2,7 @@
 
 import { Command } from 'commander';
 import { runProbe } from './commands/probe';
+import { CLIENT_DEFINITIONS } from './clients';
 
 async function main() {
   const chalk = (await import('chalk')).default;
@@ -27,7 +28,7 @@ async function main() {
     .option('--md', 'Save report as markdown file')
     .option('--tools', 'Only show tools')
     .option('--score', 'Only show score')
-    .option('--config <client>', 'Show config for a specific client (claude, claude-code, cursor, windsurf, cline, vscode, codex, gemini, goose, continue, zed, amp, jetbrains)')
+    .option('--config <client>', `Show config for a specific client (${CLIENT_DEFINITIONS.map((c) => c.key).join(', ')})`)
     .option('--copy', 'Copy config to clipboard (use with --config)')
     .addHelpText('beforeAll', branding)
     .action(async (target: string | undefined, opts: any) => {
@@ -37,7 +38,7 @@ async function main() {
         return;
       }
 
-      const validClients = ['claude', 'claude-code', 'cursor', 'windsurf', 'cline', 'vscode', 'codex', 'gemini', 'goose', 'continue', 'zed', 'amp', 'jetbrains'];
+      const validClients = CLIENT_DEFINITIONS.map((c) => c.key);
       if (opts.config && !validClients.includes(opts.config.toLowerCase())) {
         console.error(
           `\nError: Invalid client "${opts.config}". Use one of: ${validClients.join(', ')}\n`
