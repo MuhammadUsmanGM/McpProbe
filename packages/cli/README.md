@@ -47,6 +47,8 @@ Options:
                      (claude, claude-code, cursor, windsurf, cline, vscode,
                       codex, gemini, goose, continue, zed, amp, jetbrains)
   --copy             Copy the generated config to your clipboard
+  --dry-run          Static analysis only — skip server connection
+  -y, --yes          Skip confirmation prompt before executing npx
 ```
 
 ## 🤝 Contributing

@@ -29,15 +29,24 @@ export async function runProbe(target: string, options: CLIOptions): Promise<voi
     const transport = detectTransport(repo);
     transportSpinner.succeed(`Server type: ${transport}`);
 
-    // Step 3: Connect and discover tools
-    const connectSpinner = await createSpinner('Connecting to server...');
-    connectSpinner.start();
-    const connection = await connectToServer(repo, transport, { skipConfirm: options.yes });
+    // Step 3: Connect and discover tools (skip in dry-run mode)
+    let connection: import('../types').ConnectionResult;
 
-    if (connection.connected) {
-      connectSpinner.succeed(`Connected (${connection.latencyMs}ms) — ${connection.tools.length} tools found`);
+    if (options.dryRun) {
+      const dryRunSpinner = await createSpinner('Dry run — skipping connection...');
+      dryRunSpinner.start();
+      connection = { tools: [], latencyMs: 0, connected: false, error: 'Dry run — connection skipped' };
+      dryRunSpinner.succeed('Dry run — static analysis only');
     } else {
-      connectSpinner.warn(`Connection skipped — ${connection.error || 'could not connect'}`);
+      const connectSpinner = await createSpinner('Connecting to server...');
+      connectSpinner.start();
+      connection = await connectToServer(repo, transport, { skipConfirm: options.yes });
+
+      if (connection.connected) {
+        connectSpinner.succeed(`Connected (${connection.latencyMs}ms) — ${connection.tools.length} tools found`);
+      } else {
+        connectSpinner.warn(`Connection skipped — ${connection.error || 'could not connect'}`);
+      }
     }
 
     const tools = connection.tools;

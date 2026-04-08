@@ -31,6 +31,7 @@ async function main() {
     .option('--config <client>', `Show config for a specific client (${CLIENT_DEFINITIONS.map((c) => c.key).join(', ')})`)
     .option('--copy', 'Copy config to clipboard (use with --config)')
     .option('-y, --yes', 'Skip confirmation prompt before executing npx')
+    .option('--dry-run', 'Static analysis only — skip server connection')
     .addHelpText('beforeAll', branding)
     .action(async (target: string | undefined, opts: any) => {
       if (!target) {
@@ -55,6 +56,7 @@ async function main() {
         config: opts.config,
         copy: opts.copy,
         yes: opts.yes,
+        dryRun: opts.dryRun,
       });
     });
 

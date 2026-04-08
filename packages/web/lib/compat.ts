@@ -11,6 +11,7 @@ export function checkCompatibility(
 ): CompatEntry[] {
   const missingDescriptions = tools.filter((t) => !t.description).length;
   const missingInputTypes = tools.flatMap((t) => t.inputs).filter((i) => !i.type || i.type === 'unknown').length;
+  const isDryRun = connection.error?.startsWith('Dry run');
 
   return CLIENT_DEFINITIONS.map((client) => {
     // Transport check
@@ -18,7 +19,16 @@ export function checkCompatibility(
       return {
         client: client.name,
         status: 'error' as const,
-        message: `${transport.toUpperCase()} transport not supported by ${client.name}`,
+        message: `${transport.toUpperCase()} transport not supported`,
+      };
+    }
+
+    // In dry-run mode, show transport compatibility only
+    if (isDryRun) {
+      return {
+        client: client.name,
+        status: 'ready' as const,
+        message: `${transport} transport compatible`,
       };
     }
 

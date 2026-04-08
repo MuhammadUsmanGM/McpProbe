@@ -87,4 +87,5 @@ export interface CLIOptions {
   config?: string;
   copy?: boolean;
   yes?: boolean;
+  dryRun?: boolean;
 }
