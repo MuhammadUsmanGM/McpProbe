@@ -5,7 +5,8 @@ import { detectTransport } from '../engine/detector';
 import { connectToServer } from '../engine/connector';
 import { scoreServer } from '../analyzer/scorer';
 import { checkCompatibility } from '../analyzer/compat';
-import { generateConfigs } from '../generator/config';
+import { generateConfigs, buildInstallProfile } from '../generator/config';
+import { discoverRemoteUrls } from '../engine/connector';
 import { displayResults } from '../output/display';
 import { saveJsonReport } from '../output/json';
 import { saveMarkdownReport } from '../output/markdown';
@@ -41,12 +42,15 @@ export async function runProbe(target: string, options: CLIOptions): Promise<voi
     } else {
       const connectSpinner = createSpinner('Connecting to server...');
       connectSpinner.start();
-      connection = await connectToServer(repo, transport, { skipConfirm: options.yes });
+      connection = await connectToServer(repo, transport, {
+        skipConfirm: options.yes,
+        explicitUrl: options.url,
+      });
 
       if (connection.connected) {
         connectSpinner.succeed(`Connected (${connection.latencyMs}ms) — ${connection.tools.length} tools found`);
       } else {
-        connectSpinner.warn(`Connection skipped — ${connection.error || 'could not connect'}`);
+        connectSpinner.warn(`${transport} server unreachable — ${connection.error || 'no response'}`);
       }
     }
 
@@ -58,8 +62,11 @@ export async function runProbe(target: string, options: CLIOptions): Promise<voi
     // Step 5: Compatibility
     const compatibility = checkCompatibility(transport, tools, connection);
 
-    // Step 6: Generate configs
-    const configs = generateConfigs(repo);
+    // Step 6: Build install profile + generate configs
+    const remoteUrl =
+      options.url || (transport === 'http' && !repo.isLocal ? discoverRemoteUrls(repo)[0] : undefined);
+    const installProfile = await buildInstallProfile(repo, remoteUrl);
+    const configs = generateConfigs(repo, installProfile);
 
     // Assemble result
     const result: ProbeResult = {

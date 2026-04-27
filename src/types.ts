@@ -10,6 +10,18 @@ export interface RepoMetadata {
   isLocal: boolean;
   localPath?: string;
   subPath?: string;
+  hasDockerfile?: boolean;
+  dockerImageHint?: string;
+  remoteUrl?: string;
+}
+
+export type InstallStrategy = 'npx' | 'docker' | 'http' | 'unknown';
+
+export interface InstallationProfile {
+  strategy: InstallStrategy;
+  packageName?: string;
+  dockerImage?: string;
+  remoteUrl?: string;
 }
 
 export interface PackageJsonData {
@@ -89,4 +101,5 @@ export interface CLIOptions {
   copy?: boolean;
   yes?: boolean;
   dryRun?: boolean;
+  url?: string;
 }

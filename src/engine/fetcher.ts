@@ -165,6 +165,36 @@ async function fetchGitHubRepo(
     }
   }
 
+  // Probe for Dockerfile (subpath-aware). HEAD request via raw.githubusercontent.
+  let hasDockerfile = false;
+  const dockerCandidates = prefix
+    ? [
+        `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${prefix}Dockerfile`,
+        `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/Dockerfile`,
+      ]
+    : [`https://raw.githubusercontent.com/${owner}/${repo}/${branch}/Dockerfile`];
+  for (const url of dockerCandidates) {
+    try {
+      const res = await fetch(url, { method: 'HEAD', headers });
+      if (res.ok) {
+        hasDockerfile = true;
+        break;
+      }
+    } catch {
+      // continue
+    }
+  }
+
+  // Hint at a likely image name from README (e.g. `ghcr.io/...`, `docker pull <image>`)
+  let dockerImageHint: string | undefined;
+  const imageMatch =
+    readmeContent.match(/docker\s+pull\s+([^\s`"']+)/i) ||
+    readmeContent.match(/\b(ghcr\.io\/[^\s`"']+)/i) ||
+    readmeContent.match(/image:\s*([^\s`"']+)/i);
+  if (imageMatch) {
+    dockerImageHint = imageMatch[1];
+  }
+
   return {
     name: repoData.name,
     fullName: repoData.full_name,
@@ -176,6 +206,8 @@ async function fetchGitHubRepo(
     readmeContent,
     isLocal: false,
     subPath: subPath || undefined,
+    hasDockerfile,
+    dockerImageHint,
   };
 }
 
@@ -201,6 +233,7 @@ function fetchLocalRepo(localPath: string): RepoMetadata {
     readmeContent = fs.readFileSync(readmePath, 'utf-8');
   }
 
+  const hasDockerfile = fs.existsSync(path.join(absPath, 'Dockerfile'));
   const name = packageJson?.name || path.basename(absPath);
 
   return {
@@ -214,6 +247,7 @@ function fetchLocalRepo(localPath: string): RepoMetadata {
     readmeContent,
     isLocal: true,
     localPath: absPath,
+    hasDockerfile,
   };
 }
 

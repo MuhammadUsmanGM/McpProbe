@@ -1,4 +1,4 @@
-import { ServerTransport } from './types';
+import { ServerTransport, InstallationProfile } from './types';
 
 export interface ClientDefinition {
   key: string;
@@ -7,11 +7,81 @@ export interface ClientDefinition {
   warningCheck: 'descriptions' | 'inputTypes';
   configFormat: 'json' | 'toml' | 'yaml';
   configFilePath: string;
-  generateConfig: (serverName: string) => string;
+  generateConfig: (profile: InstallationProfile) => string;
 }
 
-function jsonConfig(rootKey: string, serverName: string): string {
-  return JSON.stringify({ [rootKey]: { [serverName]: { command: 'npx', args: ['-y', serverName] } } }, null, 2);
+interface CommandSpec {
+  command: string;
+  args: string[];
+}
+
+function commandFromProfile(profile: InstallationProfile): CommandSpec {
+  switch (profile.strategy) {
+    case 'npx':
+      return { command: 'npx', args: ['-y', profile.packageName!] };
+    case 'docker':
+      return {
+        command: 'docker',
+        args: ['run', '-i', '--rm', profile.dockerImage || `<image-for-${profile.packageName}>`],
+      };
+    case 'http':
+      // command/args not used for http; consumer should branch on strategy
+      return { command: '', args: [] };
+    case 'unknown':
+    default:
+      return { command: '<command>', args: [`<args-for-${profile.packageName}>`] };
+  }
+}
+
+function jsonStdio(
+  rootKey: string,
+  profile: InstallationProfile,
+  opts?: { httpKey?: 'url' | 'serverUrl'; transportField?: boolean; supportsHttp?: boolean }
+): string {
+  const serverName = profile.packageName || 'server';
+
+  if (profile.strategy === 'http') {
+    if (opts?.supportsHttp === false) {
+      return `// This client only supports stdio transport, but the server is HTTP-only.\n// Use a client that supports HTTP (Claude Code, Cursor, VS Code, Continue, Zed, JetBrains, etc.)\n// Remote endpoint: ${profile.remoteUrl}`;
+    }
+    const inner: Record<string, any> = {};
+    inner[opts?.httpKey || 'url'] = profile.remoteUrl;
+    if (opts?.transportField) inner.type = 'http';
+    return JSON.stringify({ [rootKey]: { [serverName]: inner } }, null, 2);
+  }
+
+  const { command, args } = commandFromProfile(profile);
+  const inner: Record<string, any> = { command, args };
+  return JSON.stringify({ [rootKey]: { [serverName]: inner } }, null, 2);
+}
+
+function codexConfig(profile: InstallationProfile): string {
+  const serverName = profile.packageName || 'server';
+  if (profile.strategy === 'http') {
+    return `[mcp_servers.${serverName}]\nurl = "${profile.remoteUrl}"`;
+  }
+  const { command, args } = commandFromProfile(profile);
+  const argsToml = JSON.stringify(args);
+  return `[mcp_servers.${serverName}]\ncommand = "${command}"\nargs = ${argsToml}`;
+}
+
+function gooseConfig(profile: InstallationProfile): string {
+  const serverName = profile.packageName || 'server';
+  if (profile.strategy === 'http') {
+    return `extensions:\n  ${serverName}:\n    name: ${serverName}\n    type: sse\n    uri: ${profile.remoteUrl}\n    enabled: true`;
+  }
+  const { command, args } = commandFromProfile(profile);
+  return `extensions:\n  ${serverName}:\n    name: ${serverName}\n    cmd: ${command}\n    args: ${JSON.stringify(args)}\n    enabled: true\n    type: stdio`;
+}
+
+function continueConfig(profile: InstallationProfile): string {
+  const serverName = profile.packageName || 'server';
+  if (profile.strategy === 'http') {
+    return `name: ${serverName} MCP\nversion: 0.0.1\nschema: v1\nmcpServers:\n  - name: ${serverName}\n    url: ${profile.remoteUrl}`;
+  }
+  const { command, args } = commandFromProfile(profile);
+  const argLines = args.map((a) => `      - "${a}"`).join('\n');
+  return `name: ${serverName} MCP\nversion: 0.0.1\nschema: v1\nmcpServers:\n  - name: ${serverName}\n    command: ${command}\n    args:\n${argLines}`;
 }
 
 export const CLIENT_DEFINITIONS: ClientDefinition[] = [
@@ -21,8 +91,9 @@ export const CLIENT_DEFINITIONS: ClientDefinition[] = [
     transports: ['stdio'],
     warningCheck: 'descriptions',
     configFormat: 'json',
-    configFilePath: '~/Library/Application Support/Claude/claude_desktop_config.json (macOS)\n  %APPDATA%\\Claude\\claude_desktop_config.json (Windows)',
-    generateConfig: (s) => jsonConfig('mcpServers', s),
+    configFilePath:
+      '~/Library/Application Support/Claude/claude_desktop_config.json (macOS)\n  %APPDATA%\\Claude\\claude_desktop_config.json (Windows)',
+    generateConfig: (p) => jsonStdio('mcpServers', p, { supportsHttp: false }),
   },
   {
     key: 'claude-code',
@@ -31,7 +102,7 @@ export const CLIENT_DEFINITIONS: ClientDefinition[] = [
     warningCheck: 'descriptions',
     configFormat: 'json',
     configFilePath: '.mcp.json (project) or ~/.claude.json (global)',
-    generateConfig: (s) => jsonConfig('mcpServers', s),
+    generateConfig: (p) => jsonStdio('mcpServers', p, { transportField: true }),
   },
   {
     key: 'cursor',
@@ -40,7 +111,7 @@ export const CLIENT_DEFINITIONS: ClientDefinition[] = [
     warningCheck: 'inputTypes',
     configFormat: 'json',
     configFilePath: '.cursor/mcp.json (project root)',
-    generateConfig: (s) => jsonConfig('mcpServers', s),
+    generateConfig: (p) => jsonStdio('mcpServers', p),
   },
   {
     key: 'windsurf',
@@ -49,16 +120,16 @@ export const CLIENT_DEFINITIONS: ClientDefinition[] = [
     warningCheck: 'descriptions',
     configFormat: 'json',
     configFilePath: '~/.windsurf/mcp_config.json',
-    generateConfig: (s) => jsonConfig('mcpServers', s),
+    generateConfig: (p) => jsonStdio('mcpServers', p, { httpKey: 'serverUrl' }),
   },
   {
     key: 'cline',
     name: 'Cline',
-    transports: ['stdio'],
+    transports: ['stdio', 'http'],
     warningCheck: 'descriptions',
     configFormat: 'json',
     configFilePath: 'VS Code settings.json → "cline.mcpServers"',
-    generateConfig: (s) => jsonConfig('mcpServers', s),
+    generateConfig: (p) => jsonStdio('mcpServers', p),
   },
   {
     key: 'vscode',
@@ -67,16 +138,16 @@ export const CLIENT_DEFINITIONS: ClientDefinition[] = [
     warningCheck: 'descriptions',
     configFormat: 'json',
     configFilePath: '.vscode/mcp.json (workspace) or User Profile mcp.json (global)',
-    generateConfig: (s) => jsonConfig('servers', s),
+    generateConfig: (p) => jsonStdio('servers', p, { transportField: true }),
   },
   {
     key: 'codex',
     name: 'Codex',
-    transports: ['stdio'],
+    transports: ['stdio', 'http'],
     warningCheck: 'descriptions',
     configFormat: 'toml',
     configFilePath: '~/.codex/config.toml (global) or .codex/config.toml (project)',
-    generateConfig: (s) => `[mcp_servers.${s}]\ncommand = "npx"\nargs = ["-y", "${s}"]`,
+    generateConfig: codexConfig,
   },
   {
     key: 'gemini',
@@ -85,16 +156,16 @@ export const CLIENT_DEFINITIONS: ClientDefinition[] = [
     warningCheck: 'descriptions',
     configFormat: 'json',
     configFilePath: '~/.gemini/settings.json (global) or .gemini/settings.json (project)',
-    generateConfig: (s) => jsonConfig('mcpServers', s),
+    generateConfig: (p) => jsonStdio('mcpServers', p, { supportsHttp: false }),
   },
   {
     key: 'goose',
     name: 'Goose',
-    transports: ['stdio'],
+    transports: ['stdio', 'http'],
     warningCheck: 'descriptions',
     configFormat: 'yaml',
     configFilePath: '~/.config/goose/config.yaml',
-    generateConfig: (s) => `extensions:\n  ${s}:\n    name: ${s}\n    cmd: npx\n    args: ["-y", "${s}"]\n    enabled: true\n    type: stdio`,
+    generateConfig: gooseConfig,
   },
   {
     key: 'continue',
@@ -102,8 +173,9 @@ export const CLIENT_DEFINITIONS: ClientDefinition[] = [
     transports: ['stdio', 'http'],
     warningCheck: 'descriptions',
     configFormat: 'yaml',
-    configFilePath: '.continue/mcpServers/*.yaml (workspace) or ~/.continue/config.yaml (global)',
-    generateConfig: (s) => `name: ${s} MCP\nversion: 0.0.1\nschema: v1\nmcpServers:\n  - name: ${s}\n    command: npx\n    args:\n      - "-y"\n      - "${s}"`,
+    configFilePath:
+      '.continue/mcpServers/*.yaml (workspace) or ~/.continue/config.yaml (global)',
+    generateConfig: continueConfig,
   },
   {
     key: 'zed',
@@ -111,8 +183,9 @@ export const CLIENT_DEFINITIONS: ClientDefinition[] = [
     transports: ['stdio', 'http'],
     warningCheck: 'descriptions',
     configFormat: 'json',
-    configFilePath: '~/.config/zed/settings.json (macOS/Linux)\n  %APPDATA%\\Zed\\settings.json (Windows)',
-    generateConfig: (s) => jsonConfig('context_servers', s),
+    configFilePath:
+      '~/.config/zed/settings.json (macOS/Linux)\n  %APPDATA%\\Zed\\settings.json (Windows)',
+    generateConfig: (p) => jsonStdio('context_servers', p),
   },
   {
     key: 'amp',
@@ -121,7 +194,7 @@ export const CLIENT_DEFINITIONS: ClientDefinition[] = [
     warningCheck: 'descriptions',
     configFormat: 'json',
     configFilePath: '~/.config/amp/settings.json',
-    generateConfig: (s) => jsonConfig('mcpServers', s),
+    generateConfig: (p) => jsonStdio('mcpServers', p, { supportsHttp: false }),
   },
   {
     key: 'jetbrains',
@@ -130,6 +203,6 @@ export const CLIENT_DEFINITIONS: ClientDefinition[] = [
     warningCheck: 'descriptions',
     configFormat: 'json',
     configFilePath: 'IDE Settings → Tools → AI Assistant → MCP',
-    generateConfig: (s) => jsonConfig('mcpServers', s),
+    generateConfig: (p) => jsonStdio('mcpServers', p),
   },
 ];

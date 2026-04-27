@@ -12,6 +12,51 @@ const MAX_HTTP_URLS_TO_TRY = 5;
 
 export interface ConnectorOptions {
   skipConfirm?: boolean;
+  explicitUrl?: string;
+}
+
+/**
+ * Discover candidate remote MCP endpoint URLs from README and package.json.
+ * Looks for typical MCP endpoint patterns rather than every URL in the doc.
+ */
+export function discoverRemoteUrls(repo: RepoMetadata): string[] {
+  const candidates = new Set<string>();
+  const haystack = [
+    repo.readmeContent,
+    repo.packageJson ? JSON.stringify(repo.packageJson) : '',
+  ].join('\n');
+
+  // Match https URLs that look like MCP/SSE endpoints
+  const urlRegex = /https?:\/\/[^\s"'`<>)\]}]+/g;
+  const matches = haystack.match(urlRegex) || [];
+
+  for (const raw of matches) {
+    const url = raw.replace(/[.,;:!?)]+$/, '');
+    const lower = url.toLowerCase();
+
+    // Endpoint-shaped: ends with /mcp, /mcp/, /sse, or /sse/ (with optional trailing path segment)
+    const looksLikeEndpoint = /\/(mcp|sse)\/?$/.test(lower);
+    if (!looksLikeEndpoint) continue;
+
+    // Skip noisy docs/CDN/install-link domains
+    if (
+      lower.includes('github.com') ||
+      lower.includes('npmjs.com') ||
+      lower.includes('modelcontextprotocol.io') ||
+      lower.includes('vscode.dev') ||
+      lower.includes('cursor.com/install') ||
+      lower.includes('insiders.vscode') ||
+      lower.includes('.svg') ||
+      lower.includes('.png') ||
+      url.includes('?') // installer redirect URLs are query-heavy
+    ) {
+      continue;
+    }
+    candidates.add(url);
+  }
+
+  // Prefer shorter, root-ish endpoints first
+  return Array.from(candidates).sort((a, b) => a.length - b.length);
 }
 
 /**
@@ -226,53 +271,102 @@ async function connectStdio(repo: RepoMetadata, options: ConnectorOptions = {}):
 /**
  * Connect to an HTTP/SSE MCP server.
  */
-async function connectHttp(repo: RepoMetadata): Promise<ConnectionResult> {
+async function tryHttpEndpoint(url: string): Promise<{ tools: any[] } | null> {
+  try {
+    const res = await fetchWithTimeout(
+      url,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json, text/event-stream',
+        },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'tools/list',
+          params: {},
+        }),
+      },
+      HTTP_PER_URL_TIMEOUT_MS
+    );
+
+    if (!res.ok) return null;
+
+    const contentType = (res.headers.get('content-type') || '').toLowerCase();
+    if (contentType.includes('application/json')) {
+      const data = (await res.json()) as any;
+      return { tools: data?.result?.tools || [] };
+    }
+    // SSE / streamable HTTP — best-effort parse of first JSON event
+    const text = await res.text();
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return null;
+    try {
+      const data = JSON.parse(jsonMatch[0]);
+      return { tools: data?.result?.tools || [] };
+    } catch {
+      return null;
+    }
+  } catch {
+    return null;
+  }
+}
+
+async function connectHttp(
+  repo: RepoMetadata,
+  options: ConnectorOptions = {}
+): Promise<ConnectionResult> {
   const startTime = Date.now();
+  const tried: string[] = [];
 
   try {
-    const baseUrls: string[] = [];
+    const candidates: string[] = [];
 
-    if (repo.isLocal) {
-      baseUrls.push('http://localhost:3000', 'http://localhost:8000', 'http://localhost:8080');
+    // 1. Explicit --url wins
+    if (options.explicitUrl) {
+      candidates.push(options.explicitUrl);
     } else {
-      // Only try localhost for remote repos — README URL scraping is unreliable and slow
-      baseUrls.push('http://localhost:3000', 'http://localhost:8000', 'http://localhost:8080');
-    }
-
-    // Limit URLs to try
-    const urlsToTry = baseUrls.slice(0, MAX_HTTP_URLS_TO_TRY);
-
-    for (const baseUrl of urlsToTry) {
-      try {
-        const res = await fetchWithTimeout(`${baseUrl}/mcp`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            jsonrpc: '2.0',
-            id: 1,
-            method: 'tools/list',
-            params: {},
-          }),
-        }, HTTP_PER_URL_TIMEOUT_MS);
-
-        if (res.ok) {
-          const data = (await res.json()) as any;
-          const rawTools = data?.result?.tools || [];
-          const tools = parseTools(rawTools);
-          const latencyMs = Date.now() - startTime;
-
-          return { tools, latencyMs, connected: true };
+      // 2. URLs scraped from README/package.json (remote repos only)
+      if (!repo.isLocal) {
+        const discovered = discoverRemoteUrls(repo);
+        for (const u of discovered) {
+          // Try as-is, plus common path append if no /mcp at end
+          candidates.push(u);
+          if (!/\/(mcp|sse)\/?$/i.test(u)) {
+            candidates.push(u.replace(/\/$/, '') + '/mcp');
+          }
         }
-      } catch {
-        // Try next URL
+      }
+      // 3. Localhost fallbacks (always — server may be running locally)
+      for (const port of [3000, 8000, 8080]) {
+        candidates.push(`http://localhost:${port}/mcp`);
       }
     }
 
+    const urlsToTry = candidates.slice(0, MAX_HTTP_URLS_TO_TRY);
+
+    for (const url of urlsToTry) {
+      tried.push(url);
+      const result = await tryHttpEndpoint(url);
+      if (result) {
+        return {
+          tools: parseTools(result.tools),
+          latencyMs: Date.now() - startTime,
+          connected: true,
+        };
+      }
+    }
+
+    const triedDetail = tried.length ? ` Tried: ${tried.join(', ')}` : '';
+    const hint = options.explicitUrl
+      ? ''
+      : ' Pass --url <endpoint> if the server is hosted remotely, or start it locally.';
     return {
       tools: [],
       latencyMs: Date.now() - startTime,
       connected: false,
-      error: 'Could not connect to HTTP MCP server. Ensure it is running locally.',
+      error: `Could not reach an HTTP MCP endpoint.${hint}${triedDetail}`,
     };
   } catch (error) {
     return {
@@ -297,7 +391,7 @@ export async function connectToServer(
   }
 
   if (transport === 'http') {
-    return connectHttp(repo);
+    return connectHttp(repo, options);
   }
 
   // Unknown transport — try stdio first, then HTTP
@@ -306,5 +400,5 @@ export async function connectToServer(
     return stdioResult;
   }
 
-  return connectHttp(repo);
+  return connectHttp(repo, options);
 }

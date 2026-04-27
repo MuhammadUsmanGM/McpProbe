@@ -32,13 +32,18 @@ export function displayResults(result: ProbeResult, options: {
 
   const starStr = result.repo.stars > 0 ? chalk.yellow(` (★ ${result.repo.stars})`) : '';
   console.log(`${chalk.green('✔')} ${chalk.gray('Repo fetched')}         ${chalk.white(result.repo.name)}${starStr}`);
-  console.log(`${chalk.green('✔')} ${chalk.gray('Server type')}          ${chalk.white(result.connection.connected ? result.transport : chalk.red('failed'))}`);
 
+  const transportLabel = result.transport === 'unknown' ? chalk.gray('unknown') : chalk.white(result.transport);
+  console.log(`${chalk.green('✔')} ${chalk.gray('Server type')}          ${transportLabel}`);
+
+  const isDryRun = result.connection.error?.startsWith('Dry run');
   if (result.connection.connected) {
     console.log(`${chalk.green('✔')} ${chalk.gray('Connected')}            ${chalk.white(result.connection.latencyMs + 'ms')}`);
     console.log(`${chalk.green('✔')} ${chalk.gray('Tools discovered')}     ${chalk.white(String(result.tools.length))}`);
+  } else if (isDryRun) {
+    console.log(`${chalk.yellow('•')} ${chalk.gray('Connection')}           ${chalk.gray('skipped (dry run)')}`);
   } else {
-    console.log(`${chalk.red('✗')} ${chalk.gray('Connection')}           ${chalk.red(result.connection.error || 'Failed')}`);
+    console.log(`${chalk.yellow('⚠')} ${chalk.gray('Connection')}           ${chalk.yellow('unreachable')} ${chalk.gray('— ' + (result.connection.error || 'no response'))}`);
   }
 
   // If --tools only
@@ -58,8 +63,9 @@ export function displayResults(result: ProbeResult, options: {
   displayCompatibility(result.compatibility);
   displayScore(result.score);
 
-  // Config section
-  const configClient = options.configClient || 'claude';
+  // Config section. Default to claude-code (supports both stdio + http);
+  // fall back to claude when explicitly requested elsewhere.
+  const configClient = options.configClient || 'claude-code';
   displayConfig(result.configs, configClient, options.copied || false);
 
   // Footer hints

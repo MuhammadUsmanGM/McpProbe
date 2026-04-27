@@ -32,6 +32,7 @@ async function main() {
     .option('--copy', 'Copy config to clipboard (use with --config)')
     .option('-y, --yes', 'Skip confirmation prompt before executing npx')
     .option('--dry-run', 'Static analysis only — skip server connection')
+    .option('--url <endpoint>', 'Explicit remote MCP endpoint URL (skips URL discovery)')
     .addHelpText('beforeAll', branding)
     .action(async (target: string | undefined, opts: any) => {
       if (!target) {
@@ -57,6 +58,7 @@ async function main() {
         copy: opts.copy,
         yes: opts.yes,
         dryRun: opts.dryRun,
+        url: opts.url,
       });
     });
 

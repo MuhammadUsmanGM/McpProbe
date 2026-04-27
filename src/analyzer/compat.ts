@@ -13,9 +13,11 @@ export function checkCompatibility(
   const missingInputTypes = tools.flatMap((t) => t.inputs).filter((i) => !i.type || i.type === 'unknown').length;
   const isDryRun = connection.error?.startsWith('Dry run');
 
+  const transportKnown = transport === 'stdio' || transport === 'http';
+
   return CLIENT_DEFINITIONS.map((client) => {
-    // Transport check
-    if (!client.transports.includes(transport)) {
+    // Transport check (real compat signal — independent of probe success)
+    if (transportKnown && !client.transports.includes(transport)) {
       return {
         client: client.name,
         status: 'error' as const,
@@ -23,21 +25,31 @@ export function checkCompatibility(
       };
     }
 
-    // In dry-run mode, show transport compatibility only
+    // Dry-run: transport compatibility only
     if (isDryRun) {
+      const t = transportKnown ? transport : 'detected';
       return {
         client: client.name,
         status: 'ready' as const,
-        message: `${transport} transport compatible`,
+        message: `${t} transport compatible (dry run)`,
       };
     }
 
-    // Connection check
-    if (!connection.connected || tools.length === 0) {
+    // Probe failed — but transport itself is compatible. Don't penalize the client.
+    if (!connection.connected) {
+      const t = transportKnown ? transport : 'server';
       return {
         client: client.name,
-        status: 'error' as const,
-        message: connection.error || 'Could not connect or no tools found',
+        status: 'warning' as const,
+        message: `${t} transport compatible — probe couldn't verify tools`,
+      };
+    }
+
+    if (tools.length === 0) {
+      return {
+        client: client.name,
+        status: 'warning' as const,
+        message: 'Connected, but no tools exposed',
       };
     }
 

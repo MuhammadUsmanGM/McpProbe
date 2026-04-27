@@ -10,10 +10,11 @@ export function scoreServer(
 ): ScoreResult {
   const breakdown: ScoreBreakdown[] = [];
 
-  // 1. Responds under 3s → 20pts
+  // 1. Responds under 3s → 20pts (only meaningful if we connected)
   const respondsFast = connection.connected && connection.latencyMs < 3000;
+  const probeSkipped = !connection.connected;
   breakdown.push({
-    label: 'Responds under 3s',
+    label: probeSkipped ? 'Responds under 3s (not measured)' : 'Responds under 3s',
     key: 'responds_under_3s',
     maxPoints: 20,
     earnedPoints: respondsFast ? 20 : 0,
@@ -26,7 +27,7 @@ export function scoreServer(
   const descRatio = tools.length > 0 ? descCount / tools.length : 0;
   const descPoints = tools.length === 0 ? 0 : Math.round(descRatio * 20);
   breakdown.push({
-    label: 'All tools have descriptions',
+    label: probeSkipped && tools.length === 0 ? 'All tools have descriptions (not measured)' : 'All tools have descriptions',
     key: 'tools_described',
     maxPoints: 20,
     earnedPoints: descPoints,
@@ -40,7 +41,7 @@ export function scoreServer(
   const typedRatio = allInputs.length > 0 ? typedInputs.length / allInputs.length : 0;
   const typedPoints = allInputs.length === 0 ? 0 : Math.round(typedRatio * 15);
   breakdown.push({
-    label: 'All inputs typed',
+    label: probeSkipped && allInputs.length === 0 ? 'All inputs typed (not measured)' : 'All inputs typed',
     key: 'inputs_typed',
     maxPoints: 15,
     earnedPoints: typedPoints,
@@ -92,7 +93,7 @@ export function scoreServer(
     return schemaStr.includes('error') || schemaStr.includes('Error');
   });
   breakdown.push({
-    label: 'Has error schemas',
+    label: probeSkipped && tools.length === 0 ? 'Has error schemas (not measured)' : 'Has error schemas',
     key: 'has_error_handling',
     maxPoints: 10,
     earnedPoints: hasErrorHandling ? 10 : 0,
