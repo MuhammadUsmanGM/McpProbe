@@ -1,5 +1,3 @@
-<div align="center">
-  <img src="https://raw.githubusercontent.com/modelcontextprotocol/specification/main/mcp-logo.png" width="80" height="80" alt="MCP Logo" />
   <h1>MCPProbe</h1>
 
   <p>
