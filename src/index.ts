@@ -22,7 +22,7 @@ async function main() {
   program
     .name('mcpprobe')
     .description('Probe any MCP server — tools, compatibility, score, configs')
-    .version('1.1.0')
+    .version('1.0.0')
     .argument('[target]', 'GitHub URL or local path to an MCP server')
     .option('--json', 'Save report as JSON file')
     .option('--md', 'Save report as markdown file')

@@ -223,7 +223,7 @@ async function connectStdio(repo: RepoMetadata, options: ConnectorOptions = {}):
     const initPromise = sendJsonRpc(proc, 'initialize', {
       protocolVersion: '2024-11-05',
       capabilities: {},
-      clientInfo: { name: 'mcpprobe', version: '1.1.0' },
+      clientInfo: { name: 'mcpprobe', version: '1.0.0' },
     }, 1, stderrChunks);
 
     await Promise.race([initPromise, spawnError]);
