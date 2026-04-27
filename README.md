@@ -1,62 +1,71 @@
 <div align="center">
+  <img src="https://raw.githubusercontent.com/modelcontextprotocol/specification/main/mcp-logo.png" width="80" height="80" alt="MCP Logo" />
   <h1>MCPProbe</h1>
 
   <p>
-    [![npm version](https://img.shields.io/npm/v/mcpprobe.svg?style=for-the-badge&color=8B5CF6)](https://www.npmjs.org/package/mcpprobe)
-    [![npm downloads](https://img.shields.io/npm/dm/mcpprobe.svg?style=for-the-badge&color=10B981)](https://www.npmjs.org/package/mcpprobe)
-    [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
+    <a href="https://www.npmjs.com/package/mcpprobe"><img src="https://img.shields.io/npm/v/mcpprobe.svg?style=for-the-badge&color=8B5CF6&labelColor=1e1e2e" alt="NPM Version" /></a>
+    <a href="https://www.npmjs.com/package/mcpprobe"><img src="https://img.shields.io/npm/dm/mcpprobe.svg?style=for-the-badge&color=10B981&labelColor=1e1e2e" alt="Downloads" /></a>
+    <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge&color=3b82f6&labelColor=1e1e2e" alt="License" /></a>
   </p>
 
-  <p><strong>Probe any MCP server in seconds — tools, compatibility, score, configs.</strong></p>
+  <p><strong>Instant diagnostics for the Model Context Protocol ecosystem.</strong></p>
+  <p><i>Probe any MCP server in seconds — extract tools, verify compatibility, and generate configs.</i></p>
 </div>
 
 ---
 
-**MCPProbe** is a zero-install CLI that instantly dissects any Model Context Protocol (MCP) server. Pass a GitHub URL or local path, and it will automatically extract the tools it exposes, grade its quality, verify compatibility with major AI clients, and generate ready-to-paste configurations.
+## 🧐 What is MCPProbe?
+
+Building Model Context Protocol (MCP) servers is often a "black box" experience. You write the code, but you don't know if the schema is valid, if the latency is acceptable, or if it will actually work inside **Cursor**, **Claude**, or **VS Code**.
+
+**MCPProbe** solves this. It acts as a universal diagnostic layer that connects to any MCP server (local or remote), dissects its capabilities, and tells you exactly how it performs.
 
 ## ⚡ Quick Start
 
-No installation required. Just run it via `npx`:
+No installation required. Instantly probe any server using `npx`:
 
 ```bash
-npx mcpprobe https://github.com/github/github-mcp-server
+# Probe a remote GitHub repository
+npx mcpprobe https://github.com/wong2/mcp-slack-server
+
+# Probe a local directory
+npx mcpprobe ./my-custom-server
 ```
 
-*(You can also run it against a local directory: `npx mcpprobe ./my-mcp-server`)*
+## ✨ Core Features
 
-## ✨ Features
+*   🔍 **Auto-Discovery:** Automatically detects transport protocols (Stdio vs. HTTP/SSE).
+*   🛠️ **Tool Inspection:** Extracts every exposed tool, including nested descriptions and JSON-Schema arguments.
+*   🏆 **Health Scoring:** A strict 0-100 grading system based on responsiveness, documentation quality, and security.
+*   🎯 **Compatibility Matrix:** Verifies readiness for **13+ AI clients** including:
+    *   *Claude Desktop, Cursor, Windsurf, Cline, VS Code (Copilot), Gemini CLI, Goose, Continue, Zed, and more.*
+*   ⚙️ **Config Generator:** Generates production-ready JSON configurations to paste directly into your AI clients.
 
-- 🔍 **Auto-Discovery:** Automatically detects stdio vs HTTP/SSE transports.
-- 🛠️ **Tool Extraction:** Parses every tool, description, and input schema.
-- 🎯 **Client Compatibility:** Verifies readiness for **13 major AI clients** — Claude Desktop, Claude Code, Cursor, Windsurf, Cline, VS Code (Copilot), Codex, Gemini CLI, Goose, Continue, Zed, Amp, and JetBrains AI.
-- 🏆 **Health Score:** Grades the server (0-100) based on responsiveness, typing, and safety.
-- ⚙️ **Config Generator:** Spits out exact JSON configurations to paste into your AI client.
-- 🧾 **Exportable Reports:** Save full analyses via `--md` or `--json`.
-
-## 💻 Commands
+## 💻 CLI Commands
 
 ```bash
 npx mcpprobe <github-url-or-local-path> [options]
 
 Options:
-  --json             Save report as JSON
-  --md               Save report as Markdown
-  --tools            Display only the tools
-  --score            Display only the health score
-  --config <client>  Show config for a specific client
-                     (claude, claude-code, cursor, windsurf, cline, vscode,
-                      codex, gemini, goose, continue, zed, amp, jetbrains)
-  --copy             Copy the generated config to your clipboard
-  --dry-run          Static analysis only — skip server connection
-  -y, --yes          Skip confirmation prompt before executing npx
+  --json             💾 Export full analysis as a JSON file
+  --md               📝 Export full analysis as a Markdown report
+  --tools            🛠️  Display only the tools list
+  --score            🏆 Display only the health score
+  --config <client>  ⚙️  Generate config for: (cursor, claude, windsurf, etc.)
+  --copy             📋 Copy the generated config to clipboard
+  --dry-run          🧪 Static analysis only — skip server execution
+  -y, --yes          ⏩ Skip confirmation prompts for npx execution
 ```
 
 ## 🤝 Contributing
 
-We welcome contributions of all sizes! Whether it's adding support for a new AI client config, refining the scoring algorithm, or fixing bugs.
+We are building the definitive diagnostic tool for the MCP ecosystem. Contributions to the scoring algorithm, client configuration templates, or transport detection are highly welcome!
 
-Please read our [**Contributing Guidelines**](CONTRIBUTING.md) to understand how to set up the project locally, run tests, and submit a pull request. We look forward to building this with you!
+Please check the [CONTRIBUTING.md](CONTRIBUTING.md) to get started.
 
-## 📜 License
+---
 
-[MIT](LICENSE) © Muhammad Usman
+<div align="center">
+  <p>Built with ❤️ for the AI Developer Community</p>
+  <p>MIT © 2026 Muhammad Usman</p>
+</div>
