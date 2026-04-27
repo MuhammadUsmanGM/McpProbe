@@ -9,6 +9,7 @@ export interface RepoMetadata {
   readmeContent: string;
   isLocal: boolean;
   localPath?: string;
+  subPath?: string;
 }
 
 export interface PackageJsonData {

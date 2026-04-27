@@ -13,7 +13,7 @@
     "build": "tsc",
     "dev": "ts-node src/index.ts",
     "lint": "eslint src/ --ext .ts",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run lint && npm run build"
   },
   "keywords": [
     "mcp",
@@ -48,12 +48,12 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@types/node": "^25.5.2",
+    "@types/node": "^22.7.0",
     "@types/node-fetch": "^2.6.13",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
     "eslint": "^8.57.0",
     "ts-node": "^10.9.2",
-    "typescript": "^6.0.2"
+    "typescript": "^5.6.3"
   }
 }

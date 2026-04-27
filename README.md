@@ -19,7 +19,7 @@
 No installation required. Just run it via `npx`:
 
 ```bash
-npx mcpprobe https://github.com/modelcontextprotocol/sqlite
+npx mcpprobe https://github.com/github/github-mcp-server
 ```
 
 *(You can also run it against a local directory: `npx mcpprobe ./my-mcp-server`)*
