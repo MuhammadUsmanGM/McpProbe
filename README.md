@@ -3,68 +3,59 @@
 
   <p>
     [![npm version](https://img.shields.io/npm/v/mcpprobe.svg?style=for-the-badge&color=8B5CF6)](https://www.npmjs.org/package/mcpprobe)
+    [![npm downloads](https://img.shields.io/npm/dm/mcpprobe.svg?style=for-the-badge&color=10B981)](https://www.npmjs.org/package/mcpprobe)
     [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
   </p>
 
   <p><strong>Probe any MCP server in seconds — tools, compatibility, score, configs.</strong></p>
-
-```text
-███╗   ███╗ ██████╗██████╗ ██████╗ ██████╗  ██████╗ ██████╗ ███████╗
-████╗ ████║██╔════╝██╔══██╗██╔══██╗██╔══██╗██╔═══██╗██╔══██╗██╔════╝
-██╔████╔██║██║     ██████╔╝██████╔╝██████╔╝██║   ██║██████╔╝█████╗  
-██║╚██╔╝██║██║     ██╔═══╝ ██╔═══╝ ██╔══██╗██║   ██║██╔══██╗██╔══╝  
-██║ ╚═╝ ██║╚██████╗██║     ██║     ██║  ██║╚██████╔╝██████╔╝███████╗
-╚═╝     ╚═╝ ╚═════╝╚═╝     ╚═╝     ╚═╝  ╚═╝ ╚═════╝ ╚═════╝ ╚══════╝
-```
 </div>
 
 ---
 
-The **MCPProbe** repository contains tools to test, analyze, and map Model Context Protocol (MCP) servers locally or remotely.
+**MCPProbe** is a zero-install CLI that instantly dissects any Model Context Protocol (MCP) server. Pass a GitHub URL or local path, and it will automatically extract the tools it exposes, grade its quality, verify compatibility with major AI clients, and generate ready-to-paste configurations.
 
-## 📦 Packages
+## ⚡ Quick Start
 
-| Package | Description | Status |
-|---|---|---|
-| [`packages/cli`](./packages/cli) | Zero-install CLI tool to instantly probe MCP servers. | ✅ Published |
-| [`packages/web`](./packages/web) | Interactive web dashboard for visual MCP exploration. | 🚧 Coming Soon |
-
----
-
-## ⚡ CLI — Quick Start
-
-No installation required. Jump straight into the CLI using `npx`:
+No installation required. Just run it via `npx`:
 
 ```bash
 npx mcpprobe https://github.com/modelcontextprotocol/sqlite
 ```
 
-*(You can also probe local directories: `npx mcpprobe ./my-mcp-server`)*
+*(You can also run it against a local directory: `npx mcpprobe ./my-mcp-server`)*
 
-**Features:**
-- 🔍 **Auto-Discovery:** stdio vs HTTP/SSE.
-- 🛠️ **Tool Extraction:** Parses every tool and schema.
-- 🎯 **Client Compatibility:** Claude Desktop, Cursor, Windsurf, Cline.
-- 🏆 **Health Score:** Strict 0-100 grading system.
-- ⚙️ **Config Generator:** Ready-to-paste JSON setups.
+## ✨ Features
 
-[**📖 View the full CLI Docs →**](./packages/cli/README.md)
+- 🔍 **Auto-Discovery:** Automatically detects stdio vs HTTP/SSE transports.
+- 🛠️ **Tool Extraction:** Parses every tool, description, and input schema.
+- 🎯 **Client Compatibility:** Verifies readiness for **13 major AI clients** — Claude Desktop, Claude Code, Cursor, Windsurf, Cline, VS Code (Copilot), Codex, Gemini CLI, Goose, Continue, Zed, Amp, and JetBrains AI.
+- 🏆 **Health Score:** Grades the server (0-100) based on responsiveness, typing, and safety.
+- ⚙️ **Config Generator:** Spits out exact JSON configurations to paste into your AI client.
+- 🧾 **Exportable Reports:** Save full analyses via `--md` or `--json`.
 
----
+## 💻 Commands
 
-## 🌐 Web — Coming Soon
+```bash
+npx mcpprobe <github-url-or-local-path> [options]
 
-A rich, drag-and-drop web interface for exploring your MCP fleet visually. It will connect to your local servers, render interactive node maps of available tools, and let you test JSON-RPC payloads in real time directly from the browser. 
-
-*Stay tuned for updates.*
-
----
+Options:
+  --json             Save report as JSON
+  --md               Save report as Markdown
+  --tools            Display only the tools
+  --score            Display only the health score
+  --config <client>  Show config for a specific client
+                     (claude, claude-code, cursor, windsurf, cline, vscode,
+                      codex, gemini, goose, continue, zed, amp, jetbrains)
+  --copy             Copy the generated config to your clipboard
+  --dry-run          Static analysis only — skip server connection
+  -y, --yes          Skip confirmation prompt before executing npx
+```
 
 ## 🤝 Contributing
 
-We welcome contributions across all packages! Whether it's adding support for a new AI client config in the CLI, or laying the foundation for the web package.
+We welcome contributions of all sizes! Whether it's adding support for a new AI client config, refining the scoring algorithm, or fixing bugs.
 
-Please read our [Contributing Guidelines](CONTRIBUTING.md) to understand how to set up the repository locally, run tests, and submit pull requests.
+Please read our [**Contributing Guidelines**](CONTRIBUTING.md) to understand how to set up the project locally, run tests, and submit a pull request. We look forward to building this with you!
 
 ## 📜 License
 
