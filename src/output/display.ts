@@ -136,11 +136,20 @@ function displayScore(score: { total: number; maxTotal: number; grade: string; b
   console.log(`\n${chalk.gray(LINE)}`);
 
   const gradeColor = score.grade === 'A' ? chalk.green : score.grade === 'B' ? chalk.yellow : score.grade === 'C' ? chalk.hex('#FFA500') : chalk.red;
-  console.log(chalk.bold.white(`  SCORE   `) + gradeColor.bold(`${score.total} / ${score.maxTotal}`));
+  const unmeasuredCount = score.breakdown.filter((b) => b.unmeasured).length;
+  const denom = score.maxTotal > 0 ? `${score.total} / ${score.maxTotal}` : 'no checks measured';
+  const suffix = unmeasuredCount > 0 ? chalk.gray(`  (${unmeasuredCount} not measured)`) : '';
+  console.log(chalk.bold.white(`  SCORE   `) + gradeColor.bold(denom) + suffix);
   console.log(chalk.gray(LINE));
   console.log('');
 
   for (const item of score.breakdown) {
+    if (item.unmeasured) {
+      console.log(
+        `  ${chalk.gray('—')}  ${chalk.gray(item.label.padEnd(30))} ${chalk.gray('not measured')}`
+      );
+      continue;
+    }
     const icon = item.passed ? chalk.green('✔') : chalk.red('✗');
     const points = item.passed
       ? chalk.green(`+${item.earnedPoints}`)

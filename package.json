@@ -13,7 +13,8 @@
     "build": "tsc",
     "dev": "ts-node src/index.ts",
     "lint": "eslint src/ --ext .ts",
-    "prepublishOnly": "npm run lint && npm run build"
+    "test": "tsc -p tsconfig.test.json && node --test \"dist-tests/tests/*.test.js\"",
+    "prepublishOnly": "npm run lint && npm test && npm run build"
   },
   "keywords": [
     "mcp",

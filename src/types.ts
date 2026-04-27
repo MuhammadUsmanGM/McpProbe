@@ -72,6 +72,7 @@ export interface ScoreBreakdown {
   maxPoints: number;
   earnedPoints: number;
   passed: boolean;
+  unmeasured?: boolean;
 }
 
 export interface ScoreResult {
